@@ -1,9 +1,11 @@
 # Retina Vasculature Segmentation — PyTorch UNet
 
 Vessel segmentation in fundus images using a UNet with a topology-preserving
-hybrid loss (clDice + Dice + BCE).  Converted from TensorFlow/Keras to PyTorch.
+hybrid loss (clDice + Dice + BCE).
 
 ---
+
+## Project Structure
 
 ## Project Structure
 
@@ -20,9 +22,11 @@ vasculature-segmentation/
 │   ├── config/config.py          ← all hyperparameters & paths
 │   ├── data/
 │   │   ├── dataset.py            ← VasculatureDataset (PyTorch Dataset)
-│   │   └── dataloader.py         ← train / val / test DataLoader factory
-│   ├── models/model.py           ← UNet nn.Module
-│   ├── training/
+│   │   └── dataloader.py         ← train / val / test DataLoader factory (here we do preprocessing,normalization )
+│   ├── models/
+│   │   ├── model.py              ← UNet nn.Module
+│   │   └── mdrg_unet.py          ← mdrg module unet
+│   ├── train/
 │   │   ├── train.py              ← training loop + early stopping
 │   │   └── validate.py           ← validation & test-set evaluation
 │   ├── utils/
@@ -32,6 +36,10 @@ vasculature-segmentation/
 │   └── inference/predict.py      ← single-image & batch inference
 │
 ├── scripts/
+│   ├── run_compare_models.py      ← comapre the baseline unet and mdrg module model
+│   ├── run_crosschecking_dataset.py ← datasets  checking
+│   ├── run_full_evaluation_all metrices.py ←all metrices(dice,cldece,soft cldice,bettinumbers)
+│   ├── run_trsain_mdrg.py        ← mdrg module model
 │   ├── run_train.py              ← training entry point
 │   └── run_inference.py          ← inference entry point
 │
@@ -47,7 +55,82 @@ vasculature-segmentation/
 └── README.md
 ```
 
----
+## Architecture
+
+The proposed model extends the standard UNet by inserting a 
+Morphology-Driven Region Growing (MDRG) module after every encoder convolution block. 
+The MDRG module enhances vessel morphology using deformable convolutions,
+ multi-scale context aggregation, and channel attention before spatial downsampling.
+
+Network Architecture
+Input (1, 512, 512)
+    │
+    ├─ ConvBlock(1→64)
+    │      │
+    │      └── MDRG Module(64)
+    │              │
+    │              ├── Skip₁ = concat(ConvBlock, MDRG)
+    │              └── MaxPool
+    │
+    ├─ ConvBlock(64→128)
+    │      │
+    │      └── MDRG Module(128)
+    │              │
+    │              ├── Skip₂ = concat(ConvBlock, MDRG)
+    │              └── MaxPool
+    │
+    ├─ ConvBlock(128→256)
+    │      │
+    │      └── MDRG Module(256)
+    │              │
+    │              ├── Skip₃ = concat(ConvBlock, MDRG)
+    │              └── MaxPool
+    │
+    ├─ Bottleneck: ConvBlock(256→512)
+    │
+    ├─ Upsample + concat(Skip₃) → ConvBlock(512+512→256)
+    ├─ Upsample + concat(Skip₂) → ConvBlock(256+256→128)
+    ├─ Upsample + concat(Skip₁) → ConvBlock(128+128→64)
+    │
+    └─ 1×1 Convolution → Sigmoid → Output (1, 512, 512)
+MDRG Module
+
+Each encoder stage contains one Morphology-Driven Region Growing (MDRG) module that refines encoder features before downsampling.
+
+Encoder Feature
+      │
+      ├───────────────┬───────────────┬───────────────┬
+      │               │               │               │
+      ▼               ▼               ▼               ▼
+Deform Branch X  Deform Branch Y  Deform Branch Z    ASPP
+      │               │               │               │
+      └───────────────┴───────────────┴───────────────┘
+                      │
+                 Concatenation
+                      │
+                 1×1 Pointwise Conv
+                      │
+                   F_fusion
+                      │
+            ┌─────────┴─────────┐
+            │                   │
+           GMP                 GAP
+            │                   │
+            └────── Addition ───┘
+                      │
+                     MLP
+                      │
+                  Sigmoid
+                      │
+          Channel-wise Multiplication
+                      │
+     Concatenate(F_fusion, Attention Output)
+                      │
+                 1×1 Convolution
+                      │
+                 MDRG Output
+
+
 
 ## Dataset
 
@@ -113,31 +196,6 @@ python scripts/run_inference.py --evaluate
 # Custom checkpoint
 python scripts/run_inference.py --checkpoint models/checkpoints/best_retina_unet.pth --evaluate
 ```
-
----
-
-## Architecture
-
-```
-Input (1, 512, 512)
-    │
-    ├─ ConvBlock(1→64)  ──────────────────────────────────── skip₁
-    │  MaxPool
-    ├─ ConvBlock(64→128) ─────────────────────────────────── skip₂
-    │  MaxPool
-    ├─ ConvBlock(128→256) ────────────────────────────────── skip₃
-    │  MaxPool
-    │
-    ├─ Bottleneck: ConvBlock(256→512)
-    │
-    ├─ Upsample + cat(skip₃) → ConvBlock(512+256→256)
-    ├─ Upsample + cat(skip₂) → ConvBlock(256+128→128)
-    ├─ Upsample + cat(skip₁) → ConvBlock(128+64→64)
-    │
-    └─ Conv1×1 → Sigmoid → Output (1, 512, 512)
-```
-
----
 
 ## Loss Function
 
