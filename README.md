@@ -1,11 +1,7 @@
 # Retina Vasculature Segmentation — PyTorch UNet
 
 Vessel segmentation in fundus images using a UNet with a topology-preserving
-hybrid loss (clDice + Dice + BCE).
-
----
-
-## Project Structure
+hybrid loss (clDice + Dice + BCE)
 
 ## Project Structure
 
