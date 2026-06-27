@@ -57,7 +57,7 @@ The proposed model extends the standard UNet by inserting a
 Morphology-Driven Region Growing (MDRG) module after every encoder convolution block. 
 The MDRG module enhances vessel morphology using deformable convolutions,
  multi-scale context aggregation, and channel attention before spatial downsampling.
-
+```
 Network Architecture
 Input (1, 512, 512)
     │
@@ -126,7 +126,7 @@ Deform Branch X  Deform Branch Y  Deform Branch Z    ASPP
                       │
                  MDRG Output
 
-
+```
 
 ## Dataset
 
