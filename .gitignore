@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+data/
+models/
+outputs/
+retinal-vessel-fundus-dataset-collection/
+*.zip

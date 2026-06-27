@@ -1,0 +1,22 @@
+
+# ── Core ML stack ─────────────────────────────────────────────────────────────
+torch>=2.1.0
+torchvision>=0.16.0
+
+# ── Image processing ──────────────────────────────────────────────────────────
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# ── Scientific / metrics ──────────────────────────────────────────────────────
+scipy>=1.11.0
+scikit-image>=0.21.0
+
+# ── Topology metrics (optional — needed for Betti number evaluation) ──────────
+# gudhi>=3.8.0
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
+matplotlib>=3.7.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+tqdm>=4.65.0
